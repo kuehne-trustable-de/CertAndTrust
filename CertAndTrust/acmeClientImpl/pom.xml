@@ -4,7 +4,6 @@
 
   <artifactId>AcmeClientImpl</artifactId>
   <packaging>jar</packaging>
-
   <name>acmeClientImpl</name>
   <url>http://maven.apache.org</url>
 

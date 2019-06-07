@@ -2,14 +2,21 @@ package de.trustable.ca3s.acmeUpdater;
 
 public class LOG {
 
-	public static void error(final String msg) {
+	boolean bVerbose = false;
+
+	public void error(final String msg) {
 		System.err.println(msg);
 	}
-	public static void error(final String msg, final Throwable th) {
+	public void error(final String msg, final Throwable th) {
 		System.err.println(msg);
 		th.printStackTrace();
 	}
-	public static void debug(final String msg) {
-		System.out.println(msg);
+	public void debug(final String msg) {
+		if( bVerbose) {
+			System.out.println(msg);
+		}
+	}
+	public void setVerbose(boolean bVerbose) {
+		this.bVerbose = bVerbose;
 	}
 }

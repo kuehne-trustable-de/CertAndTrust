@@ -16,6 +16,7 @@ import org.shredzone.acme4j.Session;
 import org.shredzone.acme4j.Status;
 import org.shredzone.acme4j.challenge.Http01Challenge;
 import org.shredzone.acme4j.exception.AcmeException;
+import org.shredzone.acme4j.exception.AcmeServerException;
 import org.shredzone.acme4j.util.CSRBuilder;
 import org.shredzone.acme4j.util.KeyPairUtils;
 import org.slf4j.Logger;
@@ -36,7 +37,7 @@ public class AcmeClient
 	
     private static final Logger LOG = LoggerFactory.getLogger(AcmeClient.class);
     
-	public KeyCertBundle getKeyCertBundle(String alias, final CSRParameter csrParameter, KeyPair accountKeyPair ) throws AcmeException, IOException {
+	public KeyCertBundle getKeyCertBundle(String alias, final CSRParameter csrParameter, KeyPair accountKeyPair, int callbackPort ) throws AcmeException, IOException {
 
 		
 		String dirUrl = alias;
@@ -47,10 +48,10 @@ public class AcmeClient
 			}
 			dirUrl = parts[1];
 		}
-		return getKeyCertBundle(alias, csrParameter, accountKeyPair, dirUrl );
+		return getKeyCertBundle(alias, csrParameter, accountKeyPair, dirUrl, callbackPort );
 	}
 	
-	public KeyCertBundle getKeyCertBundle(final String alias, final CSRParameter csrParameter, KeyPair accountKeyPair, String dirUrl ) throws AcmeException, IOException {
+	public KeyCertBundle getKeyCertBundle(final String alias, final CSRParameter csrParameter, KeyPair accountKeyPair, String dirUrl, int callbackPort ) throws AcmeException, IOException {
 		
 		LOG.debug("connecting to " + dirUrl );
 		Session session = new Session(dirUrl);
@@ -60,13 +61,25 @@ public class AcmeClient
 		URL website = meta.getWebsite();
 		LOG.debug("TermsOfService {}, website {}", tos, website);
 		
-		
-		AccountBuilder accBuilder = new AccountBuilder().useKeyPair(accountKeyPair);
-		if( tos != null) {
-			accBuilder.agreeToTermsOfService();
+		Account account = null;
+		try {
+			account = new AccountBuilder()
+		        .onlyExisting()         // Do not create a new account
+		        .useKeyPair(accountKeyPair)
+		        .create(session);
+		}catch(AcmeServerException ase) {
+			LOG.info("keypair / account is unknown");
 		}
 		
-		Account account = accBuilder.create(session);
+		if( account == null ) {
+			LOG.info("creating new account for given keypair");
+			AccountBuilder accBuilder = new AccountBuilder().useKeyPair(accountKeyPair);
+			if( tos != null) {
+				accBuilder.agreeToTermsOfService();
+			}
+			
+			account = accBuilder.create(session);
+		}
 		
 		Order order = account.newOrder()
 		        .domains(csrParameter.getDomains())
@@ -76,7 +89,7 @@ public class AcmeClient
 		
 		
 		for (Authorization auth : order.getAuthorizations()) {
-			processAuth(auth);
+			processAuth(auth, callbackPort);
 		}
 		
 		KeyPair domainKeyPair = KeyPairUtils.createKeyPair(2048);
@@ -123,7 +136,7 @@ public class AcmeClient
 	}
 
 	
-	private void processAuth(final Authorization auth) throws AcmeException {
+	private void processAuth(final Authorization auth, int callbackPort) throws AcmeException {
 
 	    Http01Challenge challenge = auth.findChallenge(Http01Challenge.TYPE);
 
@@ -134,7 +147,7 @@ public class AcmeClient
 
 	    try {
 			Take tk = new TkFork(new FkRegex(fileNameRegEx, fileContent));
-			final FtBasic webBasic = new FtBasic(tk, 8800);
+			final FtBasic webBasic = new FtBasic(tk, callbackPort);
 			
 			final Exit exitOnValid = new Exit() {
 				@Override
@@ -155,21 +168,30 @@ public class AcmeClient
 			}).start();
 			
 			
-			LOG.debug("started ACME callback webserver for {}", fileNameRegEx);
+			LOG.debug("started ACME callback webserver for {} on port {}", fileNameRegEx, callbackPort);
 			
 		    challenge.trigger();
 	
+		    long maxWaitForAuth = 60L * 1000L;  //wait for one minute
+		    
+		    long startTime = System.currentTimeMillis();
+		    long delay = 1000L;
 		    while (auth.getStatus() != Status.VALID) {
 		    	
 				LOG.debug("Authorization not yet valid for {}", fileNameRegEx);
-		        Thread.sleep(500L);
+		        Thread.sleep(delay);
 		        auth.update();
+		        delay += 1000L;
+		        
+		        if((System.currentTimeMillis() - startTime) > maxWaitForAuth ) {
+			    	throw new AcmeException("time out while verifying challenge");
+		        }
 		    }
 
 			LOG.debug("Authorization solved for {}", fileNameRegEx);
 
 	    }catch( IOException | InterruptedException ex) {
-	    	throw new AcmeException("problem processing challange", ex);
+	    	throw new AcmeException("problem processing challenge", ex);
 	    }
 	    
 	}
