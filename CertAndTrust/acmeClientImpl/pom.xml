@@ -1,0 +1,54 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <artifactId>AcmeClientImpl</artifactId>
+  <packaging>jar</packaging>
+
+  <name>acmeClientImpl</name>
+  <url>http://maven.apache.org</url>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<java.version>1.8</java.version>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
+		
+		<acme4jVersion>2.6</acme4jVersion>
+		<takesVersion>1.16</takesVersion>
+	</properties>
+
+  <dependencies>
+
+  
+  		<dependency>
+			<groupId>org.shredzone.acme4j</groupId>
+			<artifactId>acme4j-client</artifactId>
+			<version>${acme4jVersion}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.shredzone.acme4j</groupId>
+			<artifactId>acme4j-utils</artifactId>
+			<version>${acme4jVersion}</version>
+		</dependency>
+		<dependency>
+		      <groupId>org.takes</groupId>
+		      <artifactId>takes</artifactId>
+			<version>${takesVersion}</version>
+    	</dependency>
+		
+  
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+  <parent>
+  	<groupId>de.trustable.ca3s</groupId>
+  	<artifactId>CertAndTrust</artifactId>
+  	<version>0.0.1-SNAPSHOT</version>
+  	<relativePath>..</relativePath>
+  </parent>
+</project>
