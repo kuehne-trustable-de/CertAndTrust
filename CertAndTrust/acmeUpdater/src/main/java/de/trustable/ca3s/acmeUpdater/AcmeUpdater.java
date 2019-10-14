@@ -1,9 +1,12 @@
 package de.trustable.ca3s.acmeUpdater;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -19,6 +22,10 @@ import java.security.cert.X509Certificate;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 import javax.naming.NamingException;
 
@@ -61,7 +68,7 @@ public class AcmeUpdater
 	 @Option(name="-type",required=false,usage="keystore type")
 	StoreType keystoreType = StoreType.PKCS12;
 
-	 @Option(name="-alias",required=true, usage="alias of the certificate to process (mandatory)", metaVar="STRING")
+	 @Option(name="-alias",required=false, usage="alias of the certificate to process (mandatory)", metaVar="STRING")
 	String keyAlias = "db2Server";
 //	String keyAlias = "genericServer";
 	 
@@ -75,7 +82,7 @@ public class AcmeUpdater
 	 @Option(name="-tosUrl",required=false, usage="url of the accepted 'terms of usage')", metaVar="URL")
 	String acceptedTOSUrl = "";
 	
-	 @Option(name="-domain",required=false,usage="domain names to process", metaVar="DOMAIN[, DOMAIN,...]")
+	 @Option(name="-domain",required=false,usage="domain names to process", metaVar="DOMAIN[,DOMAIN,...]")
 	String hostname = null;
 
 	 @Option(name="-v",required=false,usage="verbose processing info")
@@ -83,6 +90,9 @@ public class AcmeUpdater
 	 
 	 @Option(name="-accountStore", required=false, usage="name of the keystore file holding the account credentials", metaVar="FILE")
 	String accountStoreFileName = "accountStore.p12";
+
+	@Option(name="-genpseFileName", required=false, usage="full path and file name of genpse executable", metaVar="FILE")
+	String genpseExecFileName = "";
 
 	 
     BouncyCastleProvider bcProv = new BouncyCastleProvider();
@@ -135,8 +145,9 @@ public class AcmeUpdater
 			}
 		}
 
+		File tmpP12StoreFile = null;
+
 		File acctstoreFile = new File(accountStoreFileName);
-		File keystoreFile = new File(keystoreFileName);
 
 		boolean bWrite = false;
 		try {
@@ -156,14 +167,18 @@ public class AcmeUpdater
 					logger.error("No write access for account store '"+acctstoreFile.getAbsolutePath()+"', exiting." );
 					return 1;
 				}
-				try( FileInputStream storeStream = new FileInputStream(acctstoreFile)){
-					try {
-						acctStore.load(storeStream, acctPass);
-					} catch (GeneralSecurityException e) {
-						logger.error("reading the account store failed with exception", e);
-						return 3;
+				if( acctstoreFile.length() > 0L) {
+					try( FileInputStream storeStream = new FileInputStream(acctstoreFile)){
+						try {
+							acctStore.load(storeStream, acctPass);
+						} catch (GeneralSecurityException e) {
+							logger.error("reading the account store failed with exception", e);
+							return 3;
+						}
 					}
-				}    			
+				}else {
+					logger.error("Found empty account store '"+acctstoreFile.getAbsolutePath()+"', ignoring ..." );
+				}
 
 			}else {
 				logger.debug("account store '"+acctstoreFile.getAbsolutePath()+"' does not exist." );
@@ -194,11 +209,40 @@ public class AcmeUpdater
 				}
 			}
 
+			// assume the filename is the actual store.Maybe changed to a P12-copy of the pse store 
+			File keystoreFile = new File(keystoreFileName);
+			String actualStoreType = keystoreType.toString();
+			
+			if( keystoreType == StoreType.PSE ) {
+				if( genpseExecFileName.trim().length() == 0) {
+					logger.error("to process pse the genpse file name MUST be given. Exiting ...");
+					return 1;
+				}
+				
+				tmpP12StoreFile = File.createTempFile("pseCopy", ".p12");
+				keyAlias = "sappse";
+						
+				// it is expected that the target does NOT exist
+				tmpP12StoreFile.delete();
+				
+				copyPseToP12(genpseExecFileName, keystoreFileName, keystorePassword, keyAlias, tmpP12StoreFile.getAbsolutePath());
+				if( tmpP12StoreFile.exists() && tmpP12StoreFile.canRead()) {
+					logger.debug("tmpP12StoreFile created '"+tmpP12StoreFile.getAbsolutePath()+ "' containing " + tmpP12StoreFile.length() + " bytes" );
+					keystoreFile = tmpP12StoreFile;
+					actualStoreType = StoreType.PKCS12.toString();
+					
+				}else {
+					logger.error("Creation of P12 copy od pse failed. Exiting ...");
+					return 1;
+				}
+				
+			}
+			
+			
 		    PrivateKey accountKey = (PrivateKey) acctStore.getKey(accountAlias, acctPass);
 		    KeyPair accountKeyPair = new KeyPair(acctCert.getPublicKey(), accountKey);
 			
-			
-			KeyStore keyStore = KeyStore.getInstance(keystoreType.toString(), BouncyCastleProvider.PROVIDER_NAME );
+			KeyStore keyStore = KeyStore.getInstance(actualStoreType, BouncyCastleProvider.PROVIDER_NAME );
 			keystorePasswordChars = keystorePassword.toCharArray();
 			keyStore.load(null, keystorePasswordChars);
 
@@ -214,8 +258,8 @@ public class AcmeUpdater
 				try( FileInputStream storeStream = new FileInputStream(keystoreFile)){
 					try {
 						keyStore.load(storeStream, keystorePasswordChars);
-					} catch (GeneralSecurityException e) {
-						logger.error("reading the keystore failed with exception", e);
+					} catch (GeneralSecurityException | IOException e) {
+						logger.error("reading the keystore '" + keystoreFile.getAbsolutePath()+ "' failed with exception", e);
 					}
 				}    			
 
@@ -244,6 +288,19 @@ public class AcmeUpdater
 					logger.debug("writing updated keystore file '"+keystoreFile.getAbsolutePath()+"' ..." );
 					keyStore.store(storeStream, keystorePasswordChars);
 				}
+
+				if( keystoreType == StoreType.PSE ) {
+					if( tmpP12StoreFile == null) {
+						logger.error("Failed to retrieve the temp. P12 Container, exiting ...");
+						return 1;
+					}
+					if( !tmpP12StoreFile.canRead() || (tmpP12StoreFile.length() < 100) ) {
+						logger.error("Temp. P12 Container ("+tmpP12StoreFile.getAbsolutePath()+") not readable / no content, exiting ...");
+						return 1;
+					}
+					
+					copyP12ToPse(genpseExecFileName, keystoreFileName, keystorePassword, keyAlias, tmpP12StoreFile.getAbsolutePath());
+				}
 			}
 		} catch (GeneralSecurityException | AcmeException | NamingException | OperatorException e) {
 			logger.error("Failed with exception", e);
@@ -253,6 +310,80 @@ public class AcmeUpdater
 		return 0;
 	}
 
+	private void copyP12ToPse(String genpseExecFileName, String keystoreFileName, String keystorePassword, String alias, String tmpStoreFileName) {
+
+		boolean isWindows = System.getProperty("os.name").toLowerCase().startsWith("windows");
+		
+		ProcessBuilder builder = new ProcessBuilder();
+		if (isWindows) {
+		    builder.command(genpseExecFileName, "import_p12", "-p", keystoreFileName, "-x", keystorePassword, "-z", keystorePassword, tmpStoreFileName);
+		} else {
+		    builder.command(genpseExecFileName, "import_p12", "-p", keystoreFileName, "-x", keystorePassword, "-z", keystorePassword, tmpStoreFileName);
+		}
+
+		executeExternalProcess(builder);
+	}
+
+	private void copyPseToP12(String genpseExecFileName, String keystoreFileName, String keystorePassword, String alias, String tmpStoreFileName) {
+
+		boolean isWindows = System.getProperty("os.name").toLowerCase().startsWith("windows");
+		
+		ProcessBuilder builder = new ProcessBuilder();
+		if (isWindows) {
+		    builder.command(genpseExecFileName, "export_p12", "-p", keystoreFileName, "-x", keystorePassword, "-z", keystorePassword, "-F", alias,  tmpStoreFileName);
+		} else {
+		    builder.command(genpseExecFileName, "export_p12", "-p", keystoreFileName, "-x", keystorePassword, "-z", keystorePassword, "-F", alias,  tmpStoreFileName);
+		}
+
+		executeExternalProcess(builder);
+	}
+
+	/**
+	 * @param builder
+	 */
+	private void executeExternalProcess(ProcessBuilder builder) {
+		String cmd = "";
+	    for( String s:builder.command()) {
+	    	cmd += s + " ";
+	    }
+		logger.debug("genpse command '"+ cmd +"' " );
+	    
+		try {
+			
+			builder.directory(new File(System.getProperty("user.home")));
+			builder.inheritIO();
+			
+			Process process = builder.start();
+			StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), System.out::println);
+			ExecutorService execSrv = Executors.newSingleThreadExecutor();
+			execSrv.submit(streamGobbler);
+			
+			int exitCode = process.waitFor();
+			logger.debug("genpse exitCode '"+exitCode +"' " );
+			
+			execSrv.shutdownNow();
+			
+		}catch(InterruptedException | IOException ex) {
+			logger.error("executing external process failed with exception", ex);
+		}
+	}
+
+	private static class StreamGobbler implements Runnable {
+	    private InputStream inputStream;
+	    private Consumer<String> consumer;
+	 
+	    public StreamGobbler(InputStream inputStream, Consumer<String> consumer) {
+	        this.inputStream = inputStream;
+	        this.consumer = consumer;
+	    }
+	 
+	    @Override
+	    public void run() {
+	        new BufferedReader(new InputStreamReader(inputStream)).lines()
+	          .forEach(consumer);
+	    }
+	}
+	
 	/**
 	 * 
 	 * @param keyStore
@@ -266,20 +397,32 @@ public class AcmeUpdater
 	 */
 	private boolean updateKeyAndCertificate(KeyStore keyStore, String alias, KeyPair accountKeyPair) throws AcmeException, IOException, KeyStoreException, NamingException {
 
+		CSRParameter csrParam;
+
 		if( keyStore.containsAlias(alias)) {
 			logger.debug("updating existing entry '"+alias+"' ..." );
+			
+			if( !keyStore.isKeyEntry(alias)) {
+				logger.debug("alias '"+alias+"' does not identify a key entry!" );
+				return false;
+			}
+
+			csrParam = new CSRParameter((X509Certificate)keyStore.getCertificate(alias));
+			logger.debug("alias '"+alias+"' rerenewed with params: " + csrParam );
+			
+
 		}else {
 			logger.debug("alias '"+alias+"' not found in keystore" );
-			return false;
+//			return false;
+			
+			if( hostname == null || hostname.trim().length() == 0) {
+				logger.debug("entry not yet present, for creation the domain parameter is required" );
+				return false;
+			}
+			csrParam = new CSRParameter(hostname);
+			logger.debug("alias '"+alias+"' created with params: " + csrParam );
+			
 		}
-		
-		if( !keyStore.isKeyEntry(alias)) {
-			logger.debug("alias '"+alias+"' does not identify a key entry!" );
-			return false;
-		}
-		
-		CSRParameter csrParam = new CSRParameter((X509Certificate)keyStore.getCertificate(alias));
-		logger.debug("alias '"+alias+"' rerenewed with params: " + csrParam );
 		
 		
 		AcmeClient acmeClient = new AcmeClient();
@@ -299,8 +442,8 @@ public class AcmeUpdater
 		
 //		keyStore.setCertificateEntry("intermediate", kbr.getCertificateChain()[kbr.getCertificateChain().length -2]);
 		
-		keyStore.setCertificateEntry("ROOT", kbr.getCertificateChain()[kbr.getCertificateChain().length -1]);
-		logger.debug("alias for ROOT: " + keyStore.getCertificateAlias(kbr.getCertificateChain()[kbr.getCertificateChain().length -1]));
+//		keyStore.setCertificateEntry("ROOT", kbr.getCertificateChain()[kbr.getCertificateChain().length -1]);
+//		logger.debug("alias for ROOT: " + keyStore.getCertificateAlias(kbr.getCertificateChain()[kbr.getCertificateChain().length -1]));
 		
 	    KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(keystorePasswordChars);
 	    PrivateKeyEntry pkEntry = new PrivateKeyEntry((PrivateKey) kbr.getKey(), kbr.getCertificateChain());
@@ -309,6 +452,16 @@ public class AcmeUpdater
 		return true;
 	}
 	
+	/**
+	 * create selfsigned certificate (for internal use only!)
+	 * 
+	 * @param keyPair
+	 * @param subjectDN
+	 * @return
+	 * @throws OperatorCreationException
+	 * @throws CertificateException
+	 * @throws IOException
+	 */
 	public X509Certificate selfSign(KeyPair keyPair, String subjectDN) throws OperatorCreationException, CertificateException, IOException
 	{
 	    long now = System.currentTimeMillis();
@@ -341,5 +494,8 @@ public class AcmeUpdater
 	    return new JcaX509CertificateConverter().setProvider(bcProv).getCertificate(certBuilder.build(contentSigner));
 	}
 	
-	enum StoreType { PKCS12,JKS }
+
+	enum StoreType { PKCS12,JKS,PSE }
 }
+
+

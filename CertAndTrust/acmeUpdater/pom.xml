@@ -44,6 +44,30 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+	<build>
+
+		<plugins>
+
+			<plugin>
+				<groupId>de.ntcomputer</groupId>
+				<artifactId>executable-packer-maven-plugin</artifactId>
+				<version>1.0.1</version>
+				<configuration>
+					<mainClass>de.trustable.ca3s.acmeUpdater.AcmeUpdater</mainClass>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>pack-executable-jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+		</plugins>
+
+	</build>
+	
   <parent>
   	<groupId>de.trustable.ca3s</groupId>
   	<artifactId>CertAndTrust</artifactId>

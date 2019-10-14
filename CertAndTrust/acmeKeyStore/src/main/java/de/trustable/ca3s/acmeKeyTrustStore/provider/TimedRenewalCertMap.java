@@ -67,6 +67,8 @@ public class TimedRenewalCertMap {
 		
 //		String bundleName = alias.toUpperCase();
 		String bundleName = alias;
+		int callbackPort = 5544;
+		
 		if( !bundleSet.containsKey(bundleName) ) {
 			LOG.warn("findBundleForAlias('{}') failed to find KeyCertBundle", bundleName);
 			try {
@@ -74,7 +76,7 @@ public class TimedRenewalCertMap {
 				CSRParameter csrParam = new CSRParameter(ip.getHostName());
 				LOG.debug("requesting certificate : " + csrParam );
 				AcmeClient acmeClient = new AcmeClient();
-				KeyCertBundle kbr = acmeClient.getKeyCertBundle(alias, csrParam, accountKeyPair);
+				KeyCertBundle kbr = acmeClient.getKeyCertBundle(alias, csrParam, accountKeyPair, callbackPort);
 				bundleSet.put(bundleName, kbr);
 				LOG.debug("succeeded to retrieve certificate from ACME-Server");
 			} catch(AcmeException | IOException ex) {
