@@ -47,7 +47,7 @@
   <parent>
   	<groupId>de.trustable.ca3s</groupId>
   	<artifactId>CertAndTrust</artifactId>
-  	<version>0.0.1-SNAPSHOT</version>
+  	<version>0.0.2-SNAPSHOT</version>
   	<relativePath>..</relativePath>
   </parent>
 </project>
