@@ -12,8 +12,10 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,6 +122,21 @@ public class AcmeKeyStoreImpl extends KeyStoreSpi{
 			LOG.debug("returning alias {}", alias);
 		}
 		Vector<String> v = new Vector<String>(aliasSet);
+		if( v.isEmpty()) {
+			Properties props = System.getProperties();
+			Set keys = props.keySet();
+			Consumer action = new Consumer() {
+
+				@Override
+				public void accept(Object t) {
+					LOG.debug("Prop key {} has value {}",t,  props.getProperty((String) t));
+					
+				}};
+			keys.forEach(action);
+			
+			v.add("http://localhost:8081/acme/foo/directory");
+			LOG.debug("returning alias http://localhost:8081/acme/foo/directory");
+		}
 		return v.elements();
 	}
 

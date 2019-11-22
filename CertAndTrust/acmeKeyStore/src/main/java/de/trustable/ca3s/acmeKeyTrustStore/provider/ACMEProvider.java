@@ -8,6 +8,9 @@ import org.slf4j.LoggerFactory;
 
 public class ACMEProvider extends Provider {
 
+	public static final String SERVICE_NAME_ACME = "ACME";
+	private static final String STORE_TYPE_KEYSTORE = "Keystore";
+
 	/**
 	 * 
 	 */
@@ -21,9 +24,14 @@ public class ACMEProvider extends Provider {
 		super.put("Keystore.ACME", AcmeKeyStoreImpl.class.getName());
 		super.put("Keystore.ACME storetype", "ACME");
 
-//		putService( new ProviderService(this, "Keystore", "ACME", AcmeKeyStoreImpl.class.getName()));
+//		putService( new ProviderService(this, STORE_TYPE_KEYSTORE, SERVICE_NAME_ACME, AcmeKeyStoreImpl.class.getName()));
 		
 		LOG.debug("registered AcmeKeyStoreImpl in ACMEProvider");
+		
+		for( String prop: super.stringPropertyNames()){
+			LOG.debug("provider attribute {} : '{}'", prop, this.getProperty(prop));
+		}
+
 	}
 
 	private static final class ProviderService extends Provider.Service{
@@ -38,8 +46,8 @@ public class ACMEProvider extends Provider {
 			String algo = getAlgorithm();
 			
 			try {
-				if( "Storetype".equalsIgnoreCase(type)) {
-					if( "ACME".equalsIgnoreCase(algo)) {
+				if( STORE_TYPE_KEYSTORE.equalsIgnoreCase(type)) {
+					if( SERVICE_NAME_ACME.equalsIgnoreCase(algo)) {
 						return new AcmeKeyStoreImpl();
 					}
 				}
