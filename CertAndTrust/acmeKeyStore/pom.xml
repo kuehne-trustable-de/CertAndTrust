@@ -3,7 +3,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<artifactId>AcmeKeyTrustStore</artifactId>
+	<artifactId>AcmeKeyTrustProvider</artifactId>
 	<packaging>jar</packaging>
 
 	<name>AcmeKeyTrustStore</name>
@@ -32,18 +32,15 @@
 			<version>${acmeClientVersion}</version>
 		</dependency>
 
-<dependency>
-   <groupId>org.slf4j</groupId>
-   <artifactId>slf4j-simple</artifactId>
-   <version>1.7.25</version>
-   <scope>compile</scope>
-</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>1.7.25</version>
+			<scope>compile</scope>
+		</dependency>
 
-		<!-- dependency>
-			<groupId>eu.europa.ec.joinup.sd-dss</groupId>
-			<artifactId>dss-tsl-validation</artifactId>
-			<version>5.4</version>
-		</dependency-->
+		<!-- dependency> <groupId>eu.europa.ec.joinup.sd-dss</groupId> <artifactId>dss-tsl-validation</artifactId> 
+			<version>5.4</version> </dependency -->
 
 		<!-- https://mvnrepository.com/artifact/org.apache.tomcat/tomcat-catalina -->
 		<dependency>
@@ -118,7 +115,7 @@
 				</configuration>
 			</plugin>
 
-		<!-- Maven Assembly Plugin -->
+			<!-- Maven Assembly Plugin -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
@@ -131,14 +128,14 @@
 
 				</configuration>
 				<executions>
-				  <execution>
-					<id>make-assembly</id>
-                    <!-- bind to the packaging phase -->
-					<phase>package</phase> 
-					<goals>
-						<goal>single</goal>
-					</goals>
-				  </execution>
+					<execution>
+						<id>make-assembly</id>
+						<!-- bind to the packaging phase -->
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
 				</executions>
 			</plugin>
 

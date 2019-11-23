@@ -1,4 +1,4 @@
-package de.trustable.ca3s.acmeKeyTrustStore.tomcat;
+package de.trustable.ca3s.acmeKeyTrustProvider.tomcat;
 
 import java.security.Security;
 
@@ -8,8 +8,8 @@ import org.apache.catalina.LifecycleListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.trustable.ca3s.acmeKeyTrustStore.provider.ACMEProvider;
-import de.trustable.ca3s.acmeKeyTrustStore.provider.TSLProvider;
+import de.trustable.ca3s.acmeKeyTrustProvider.provider.ACMEProvider;
+import de.trustable.ca3s.acmeKeyTrustProvider.provider.TSLProvider;
 
 
 /**

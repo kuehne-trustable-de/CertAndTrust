@@ -1,4 +1,4 @@
-package de.trustable.ca3s.acmeKeyTrustStore.provider;
+package de.trustable.ca3s.acmeKeyTrustProvider.provider;
 
 import java.io.IOException;
 import java.io.InputStream;
