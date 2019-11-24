@@ -98,18 +98,46 @@
 						<containerId>tomcat9x</containerId>
 						<type>embedded</type>
 					</container>
+					<sharedClasspath>
+						<fileset dir="${project.build.directory}">
+							<include name="*.jar" />
+						</fileset>
+					</sharedClasspath>
 					<configuration>
 						<properties>
+							<cargo.tomcat.ajp.port>58009</cargo.tomcat.ajp.port>
+							
+							<cargo.servlet.port>58443</cargo.servlet.port>
+							<cargo.tomcat.connector.sslImplementationName>org.apache.tomcat.util.net.jsse.JSSEImplementation</cargo.tomcat.connector.sslImplementationName>
+							
 							<cargo.protocol>https</cargo.protocol>
-							<cargo.tomcat.connector.clientAuth>false</cargo.tomcat.connector.clientAuth>
-							<cargo.tomcat.connector.sslProtocol>TLS</cargo.tomcat.connector.sslProtocol>
 							<cargo.tomcat.httpSecure>true</cargo.tomcat.httpSecure>
-							<cargo.servlet.port>55444</cargo.servlet.port>
-							<cargo.tomcat.connector.keyAlias>http://localhost:8081/acme/foo/directory</cargo.tomcat.connector.keyAlias>
 							<cargo.tomcat.connector.keystoreFile>/NUL </cargo.tomcat.connector.keystoreFile>
 							<cargo.tomcat.connector.keystorePass>s3cr3t</cargo.tomcat.connector.keystorePass>
+							<cargo.tomcat.connector.keyAlias>http://localhost:8081/acme/foo/directory</cargo.tomcat.connector.keyAlias>
 							<cargo.tomcat.connector.keystoreType>ACME</cargo.tomcat.connector.keystoreType>
+							<cargo.tomcat.connector.clientAuth>false</cargo.tomcat.connector.clientAuth>
+							<cargo.tomcat.connector.sslProtocol>TLS</cargo.tomcat.connector.sslProtocol>
+							
 							<cargo.logging>high</cargo.logging>
+							
+							
+<!-- 
+							    <Connector 
+X        port="8443" 
+-        protocol="org.apache.coyote.http11.Http11NioProtocol"
+X        sslImplementationName="org.apache.tomcat.util.net.jsse.JSSEImplementation"
+-        maxThreads="150" 
+        SSLEnabled="true"
+        scheme="https" 
+X        secure="true" 
+X        keystoreFile="/NUL" 
+X        keystorePass="s3cr3t"
+X        keyAlias="http://localhost:8081/acme/foo/directory"
+X        keystoreType="ACME"
+X        clientAuth="false" 
+X        sslProtocol="TLS" />
+-->							
 						</properties>
 					</configuration>
 				</configuration>

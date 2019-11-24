@@ -122,6 +122,7 @@ public class AcmeKeyStoreImpl extends KeyStoreSpi{
 			LOG.debug("returning alias {}", alias);
 		}
 		Vector<String> v = new Vector<String>(aliasSet);
+/*		
 		if( v.isEmpty()) {
 			Properties props = System.getProperties();
 			Set keys = props.keySet();
@@ -137,6 +138,8 @@ public class AcmeKeyStoreImpl extends KeyStoreSpi{
 			v.add("http://localhost:8081/acme/foo/directory");
 			LOG.debug("returning alias http://localhost:8081/acme/foo/directory");
 		}
+*/
+		
 		return v.elements();
 	}
 
