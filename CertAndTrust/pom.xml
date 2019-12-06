@@ -26,6 +26,6 @@
   	<module>acmeClientImpl</module>
   	<module>acmeKeyStore</module>
   	<module>acmeUpdater</module>
-  	<module>acmeKeyTrustStoreInt</module>
+  	<!-- module>acmeKeyTrustStoreInt</module-->
   </modules>
 </project>

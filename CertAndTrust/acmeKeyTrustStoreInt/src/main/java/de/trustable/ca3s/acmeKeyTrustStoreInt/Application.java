@@ -1,4 +1,4 @@
-package de.trustable.ca3s.storeTester.SimpleStoreTester;
+package de.trustable.ca3s.acmeKeyTrustStoreInt;
 
 import java.security.Provider;
 import java.security.Security;
