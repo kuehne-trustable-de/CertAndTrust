@@ -101,7 +101,7 @@ public class TimedRenewalCertMap {
 		
 		try {
 			InetAddress ip = InetAddress.getLocalHost();
-			CSRParameter csrParam = new CSRParameter(ip.getHostName());
+			CSRParameter csrParam = new CSRParameter(ip.getCanonicalHostName());
 			LOG.debug("requesting certificate : " + csrParam );
 			
 			// initialize retry counter

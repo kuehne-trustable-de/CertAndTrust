@@ -138,7 +138,7 @@ public class AcmeUpdater
 	        
 		if( hostname == null) {
 			try {
-				hostname = InetAddress.getLocalHost().getHostName();
+				hostname = InetAddress.getLocalHost().getCanonicalHostName();
 			} catch (UnknownHostException e) {
 				logger.error("retrieving host name failed with exception", e);
 				return 1;
