@@ -4,7 +4,7 @@
 
   <groupId>de.trustable.ca3s</groupId>
   <artifactId>CertAndTrust</artifactId>
-  <version>0.0.2-SNAPSHOT</version>
+  <version>0.0.3</version>
   <packaging>pom</packaging>
 
   <name>CertAndTrust</name>
